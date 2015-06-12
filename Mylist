@@ -1,0 +1,363 @@
+#include <iostream>
+using namespace std;
+
+template <class T> class MyList;
+template <class T> ostream & operator<<(ostream &, const MyList<T> &);
+template <class T> MyList<T> operator + (const MyList<T> &, const MyList<T> &);
+template <class T> MyList<T> operator + (const MyList<T> &, const T &);
+
+template<class T>
+class MyList{
+    friend ostream &operator<< <T>(ostream &os, const MyList<T> &obj);
+    friend MyList<T> operator+<>  (const MyList<T> &l1, const MyList<T> &l2);
+    friend MyList<T> operator+<> (const MyList<T> &l1, const T &item);
+
+private:
+	T *a;
+	int size;
+	int listsize; 
+	void double_space();
+
+	int judge(int i, char *s="index", int op=1);  
+	int divide1(int start, int end) ;
+	int divide2(int start, int end) ;
+	void sort(int start, int end,const bool less=true); 
+
+public:
+	MyList(int len = 0):listsize(len){
+		size = 100;
+		a = new T [size];
+	}
+	MyList(int num, const T &item);
+	MyList(const MyList &l);
+    MyList(const T* arr, int len);
+    MyList &operator = (const MyList &l);
+
+    void push(const T &item);
+    T pop();
+	void insert(int index, const T &item);
+	void clean();
+	int get_size() const { return size; }
+	int get_listsize() const { return listsize; }
+	void erase(int start, int end); 
+	T get_item(int index) { index = judge(index); return a[index]; }
+	MyList get_item(int start, int end);
+	int count(const T &item) const;
+	void remove(const T &item);
+
+    T &operator [](int index);
+	MyList &operator += (const T &item);
+	MyList &operator += (const MyList &l);
+
+	void sort(bool less=true);
+	void reverse();
+
+	~MyList(){delete [] a; size = listsize = 0;}
+};
+
+template<class T>
+MyList<T> &MyList<T> :: operator = (const MyList<T> &l){
+    if (this == &l) return *this;
+    delete a;   
+    size = l.size;
+    listsize = l.listsize;
+	a = new T [size];
+	for(int i=0; i<listsize; ++i)
+        a[i] = l.a[i];
+    return *this;
+}
+
+template <class T>
+ostream &operator << (ostream &os, const MyList<T> &obj){
+	if (obj.listsize==0) os << "[]";
+	else {
+	    os << "["; 
+		for (int i=0;i<obj.listsize-1;++i) 
+		    os << obj.a[i] << "," << " "; os << obj.a[obj.listsize-1] << "]";}
+	return os; 
+}
+
+template <class T>
+T &MyList<T> :: operator [] (int index){
+    index = judge(index); 
+    return a[index];
+}
+
+template <class T>
+MyList<T> &MyList<T> :: operator += (const T &item) {
+    push(item);
+    return *this;
+}
+
+template<class T>
+MyList<T> &MyList<T> :: operator += (const MyList<T> &l){
+    if(listsize + l.listsize > size) double_space();
+    for(int i=listsize; i<listsize+l.listsize; ++i) {
+        a[i] = l.a[i-listsize];
+    }
+    listsize += l.listsize;
+    return *this;
+}
+
+template <class T>
+MyList<T> operator + (const MyList<T> &l1, const MyList<T> &l2) {
+    MyList<T> tmp(l1);
+    tmp += l2;
+    return tmp;
+}
+
+template <class T>
+MyList<T> operator + (const MyList<T> &l1, const T &item) {
+    MyList<T> tmp(l1);
+    tmp += item;
+    return tmp;
+}
+
+//Judge whether the input is legal.
+template<class T>
+int MyList<T> :: judge(int i, char *s,  int op){ 
+    bool flag = false;    
+	while (flag==false) {
+		try {
+            if(op==1) {
+                if(i<0||i>=listsize) throw -1; 
+                else flag = true;
+            }
+            if(op==2) {     
+                if(i<(-1)*listsize||i>=listsize) throw -1;  
+                else flag = true;
+            }
+        }
+        catch (int) { 
+                cout << "The " << s << " is out of the range! \nGive the proper "
+                    << s << " :" ;
+                cin >> i;
+        }
+	}                       
+    return i;
+}
+
+//Double the size.
+template <class T>
+void MyList<T> :: double_space() {
+	T *tmp = a;
+    size = 2 * size;
+    a = new T [size];
+    for (int i=0; i<listsize; ++i){
+        a[i] = tmp[i];
+    }
+    delete [] tmp;
+}
+
+//assign the items.
+template<class T>
+MyList<T> :: MyList(int num, const T &item): size(num), listsize(num) {
+    a = new T [size];
+    for(int i=0; i<listsize; ++i)
+        a[i] = item;
+}
+
+//copy construction
+template<class T>
+MyList<T> :: MyList(const MyList<T> &l) {
+	size = l.size;
+	listsize = l.listsize;
+	a = new T [size];
+
+	for(int i=0; i<listsize; ++i)
+        a[i] = l.a[i];
+}
+
+//convert the ordinary array into Mylist
+template<class T>
+MyList<T> :: MyList(const T* arr, int len): size(len), listsize(len) {
+    a = new T [size];
+    for(int i=0; i<listsize; ++i)
+        a[i] = arr[i];
+}
+
+//Insert an item.
+template <class T>
+void MyList<T> :: insert(int index, const T &item) {
+	++listsize;
+	if (listsize>size) double_space();
+	for (int i=listsize-1;i>index-1;--i) {
+	    a[i+1] = a[i];
+	}
+	a[index] = item; 
+}
+
+//Add an item to the end.
+template <class T>
+void MyList<T> :: push(const T &item) {
+	++listsize;
+	if (listsize>size) double_space();
+	a[listsize-1] = item;
+}
+
+//Return the last element and then delete it.
+template <class T>
+T MyList<T> :: pop() {
+	T tmp=a[listsize-1];
+	--listsize;
+	return tmp;
+}
+
+//clean the array.
+template <class T>
+void MyList<T> :: clean() {
+    size = listsize = 0;
+}
+
+//Delete the first element which is equal to the item.
+template <class T>
+void MyList<T> :: remove(const T &item) {
+	int m=-1;
+	for (int i=0;i<listsize;++i) {
+		if (a[i]==item) {
+			m = i; 
+			break;
+		}
+	}
+	if (m>=0) {
+		--listsize;
+		for (int i=m+1;i<listsize+1;++i) {
+		    a[i-1] = a[i];
+		}
+	}
+}
+
+//Delete the elements from a to b.
+template <class T>
+void MyList<T> :: erase(int start, int end) {
+    start = judge(start, "start");
+    end = judge(end,"end");
+	listsize = listsize - (end-start+1);
+	for (int i=end+1;i<end+1+listsize-start;++i) {
+	    a[i-end-1+start] = a[i];
+	}
+}
+
+//get the element of the corresponding position
+template <class T>
+MyList<T> MyList<T> :: get_item(int start, int end) {
+	MyList tmp;
+    start = judge(start, "start",2);
+    end = judge(end,"end",2);
+	if (start<0) start = listsize + start;
+	if (end<0) end = listsize + end;
+	if (start>end) tmp.listsize = 0;
+	else {
+		tmp.listsize = end-start+1;
+		while (tmp.listsize>tmp.size) tmp.double_space();
+		for (int i=start;i<=end;++i){
+				tmp.a[i-start] = a[i];
+		}
+	}
+	return tmp;
+}
+
+//Find how many times the element occurs.
+template <class T>
+int MyList<T> :: count(const T &item) const {
+    int _count=0;
+    for(int i=0;i<listsize;++i) {
+        if (a[i]==item) ++_count;
+    }
+    return _count;
+}
+
+//used for sort from small to big
+template<class T>
+int MyList<T> :: divide1(int start, int end){
+    int i = start, j = end;
+    T sample = a[start];
+
+    do{while (i<j &&a[j]>= sample) --j;
+        if(i<j) {a[i]= a[j];++i;}
+        while(i<j &&a[i]<= sample) ++i;
+        if(i<j) {a[j]= a[i];--j;}
+    } while( i!=j);
+
+    a[i] = sample;
+    return i;
+}
+
+//used for sort from big to small
+template<class T>
+int MyList<T> :: divide2(int start, int end){ 
+    int i = start, j = end;
+    T sample = a[start];
+
+    do{while (i<j &&a[j]<= sample) --j;
+        if(i<j) {a[i]= a[j];++i;}
+        while(i<j &&a[i]>= sample) ++i;
+        if(i<j) {a[j]= a[i];--j;}
+    } while( i!=j);
+
+    a[i] = sample;
+    return i;
+}
+
+//package the sort function
+template<class T>
+void MyList<T> :: sort(bool less){
+    sort(0,listsize-1,less);
+}
+
+//sort the Mylist
+template<class T>
+void MyList<T> :: sort(int start, int end, bool less) {  
+    int mid;
+    if(start >= end) return;
+
+    if(less)
+        mid = divide1(start, end);
+    else
+        mid = divide2(start, end);
+    sort(start, mid-1, less);
+    sort(mid+1, end, less);
+}
+
+//Reverse the list.
+template <class T>
+void MyList<T> :: reverse() {
+    T tmp;
+
+    for(int i=0;i<listsize/2;++i) {
+        tmp = a[i];
+        a[i] = a[listsize-1-i];
+        a[listsize-1-i] = tmp;
+    }
+}
+
+int main() {   
+    MyList<int> a, b;
+	int i;
+	for (i=0; i<5; ++i)
+		a.push(i);
+	a[3] = 15;
+	a.sort(); 
+	a.reverse(); 
+	a += 12; 
+	for (i=0; i<a.get_listsize(); ++i)
+		cout<<a[i]<<endl;
+    b = a.get_item(4, -3); 
+	b = a.get_item(3, -1); 
+	a += b; 
+	for (i=0; i<a.get_listsize(); ++i)
+		cout<<a.get_item(i)<<endl;
+	cout<<a.count(5)<<endl;
+	b.clean();
+	cout<<b.get_listsize()<<endl;
+	a.erase(2, 5); 
+	b = a + a;
+	b.insert(3, 116); 
+	b.remove(4); 
+	cout<<b<<endl;
+	MyList<double> c(10, 3.14);
+	for (i=0; i<100; ++i)
+		c.push(1.1*i);
+	cout<<c.get_item(100, 105)<<endl;
+    return 0;
+}
